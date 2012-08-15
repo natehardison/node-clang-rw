@@ -33,7 +33,7 @@ int EIO_Rewrite(eio_req* req)
     try
         clang_rewrite(clang_req->filename, clang_req->functions);
     catch (exception& e)
-        clang_request->error = e.what();
+        clang_request->error = std::string(e.what());
 
     return 0;
 }
@@ -60,9 +60,11 @@ Handle<Value> Remove(const Arguments& args)
 {
     HandleScope scope;
 
-    if (args.Length() < 2)
+    // error checking! It sucks to to it this way...
+    if (args.Length() < 3)
     {
-      // throw some sort of exception
+        return ThrowException(Exception::Error(
+                    String::New("Usage: remove(filename, function[s], callback)")));
     }
 
     if (!args[0]->IsString())
@@ -73,20 +75,47 @@ Handle<Value> Remove(const Arguments& args)
 
     if (!(args[1]->IsString || args[1]->IsArray()))
     {
-        // need either one function or an array of them
+        return ThrowException(Exception::TypeError(
+                    String::New("Second arg should be a string or an array.")));
     }
 
     if (!args[2]->IsFunction())
     {
-        // should be a callback
+        return ThrowException(Exception::TypeError(
+                    String::New("Third arg should be a callback function.")));
     }
 
-    clang_request* req = malloc(sizeof(clang_request));
-    req->filename = String:kkk
-    req->callback = Persistent<Function>::New(callback);
+    // build up our EIO request to be passed to our async EIO_ functions
+    clang_request* clang_req = malloc(sizeof(clang_request));
+    if (clang_req == NULL)
+        return ThrowException(Exception::Error(
+                    String::New("malloc in Remove failed.")));
 
+    // pull out the filename arg and put a C++ string in our EIO request 
+    Local<String> filename = args[0]->ToString();
+    clang_req->filename = std::string(*(filename));
+
+    // pull out the function arg(s) and put them in the EIO request's vector
+    if (args[1]->IsString())
+    {
+        Local<String> function = args[1]->ToString();
+        clang_req->functions.push_back(std::string(*(function)));
+    }
+    else
+    {
+        Local<Array> functions = Local<Array>::Cast(args[1]);
+        for (int i = 0; i < functions->Length(); i++)
+            clang_req->functions.push_back(std::string(*(functions[i]));
+    }
+
+    // pull out the callback and store a persistent copy in the EIO request
+    Local<Function> callback = Local<Function>::Cast(args[2]); 
+    clang_req->callback = Persistent<Function>::New(callback);
+
+    // set up the EIO calls
     eio_custom(EIO_Rewrite, EIO_PRI_DEFAULT, EIO_AfterRewrite, clang_req);
 
+    // retain a reference to this event thread so Node doesn't exit
     ev_ref(EV_DEFAULT_UC);
 
     return Undefined();
