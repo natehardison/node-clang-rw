@@ -8,7 +8,10 @@
 #include <vector>
 
 // Local includes
-#include "clang-rewriter.h"
+#include "rewriter.h"
+
+using namespace node;
+using namespace v8;
 
 // EIO request struct to be passed to EIO functions (for async purposes)
 typedef struct
@@ -18,22 +21,19 @@ typedef struct
     std::string error;
     Persistent<Function> callback;
 }
-clang_request;
+rewrite_request;
 
-/**
- * For making the asynchronous call to clang.
- */
 int EIO_Rewrite(eio_req* req)
 {
     HandleScope scope;
 
     // unpack our EIO request struct to get all of the info we need
-    clang_request* clang_req = static_cast<clang_request*>(req);
+    rewrite_request* rewrite_req = static_cast<rewrite_request*>(req);
 
     try
-        clang_rewrite(clang_req->filename, clang_req->functions);
+        rewrite(rewrite_req->filename, rewrite_req->functions);
     catch (exception& e)
-        clang_request->error = std::string(e.what());
+        rewrite_request->error = std::string(e.what());
 
     return 0;
 }
@@ -42,16 +42,16 @@ int EIO_AfterRewrite(eio_req* req)
 {
     HandleScope scope;
 
-    clang_request* clang_req = static_cast<clang_request*>(req);
+    rewrite_request* rewrite_req = static_cast<clang_request*>(req);
 
     ev_unref(EV_DEFAULT_UC);
 
     // TODO: figure out callback signature
-    clang_req->callback->Call(Context::GetCurrent()->Global(), 0);
+    rewrite_req->callback->Call(Context::GetCurrent()->Global(), 0);
 
-    clang_req->callback.Dispose();
+    rewrite_req->callback.Dispose();
 
-    delete clang_req;
+    delete rewrite_req;
 
     return 0;
 }
@@ -86,34 +86,34 @@ Handle<Value> Remove(const Arguments& args)
     }
 
     // build up our EIO request to be passed to our async EIO_ functions
-    clang_request* clang_req = malloc(sizeof(clang_request));
-    if (clang_req == NULL)
+    rewrite_request* rewrite_req = malloc(sizeof(rewrite_request));
+    if (rewrite_req == NULL)
         return ThrowException(Exception::Error(
                     String::New("malloc in Remove failed.")));
 
     // pull out the filename arg and put a C++ string in our EIO request 
     Local<String> filename = args[0]->ToString();
-    clang_req->filename = std::string(*(filename));
+    rewrite_req->filename = std::string(*(filename));
 
     // pull out the function arg(s) and put them in the EIO request's vector
     if (args[1]->IsString())
     {
         Local<String> function = args[1]->ToString();
-        clang_req->functions.push_back(std::string(*(function)));
+        rewrite_req->functions.push_back(std::string(*(function)));
     }
     else
     {
         Local<Array> functions = Local<Array>::Cast(args[1]);
         for (int i = 0; i < functions->Length(); i++)
-            clang_req->functions.push_back(std::string(*(functions[i]));
+            rewrite_req->functions.push_back(std::string(*(functions[i]));
     }
 
     // pull out the callback and store a persistent copy in the EIO request
     Local<Function> callback = Local<Function>::Cast(args[2]); 
-    clang_req->callback = Persistent<Function>::New(callback);
+    rewrite_req->callback = Persistent<Function>::New(callback);
 
     // set up the EIO calls
-    eio_custom(EIO_Rewrite, EIO_PRI_DEFAULT, EIO_AfterRewrite, clang_req);
+    eio_custom(EIO_Rewrite, EIO_PRI_DEFAULT, EIO_AfterRewrite, rewrite_req);
 
     // retain a reference to this event thread so Node doesn't exit
     ev_ref(EV_DEFAULT_UC);
@@ -121,6 +121,7 @@ Handle<Value> Remove(const Arguments& args)
     return Undefined();
 }
 
+/*
 Handle<Value> RemoveSync(const Arguments& args)
 {
     HandleScope scope;
@@ -134,13 +135,14 @@ Handle<Value> RemoveSync(const Arguments& args)
 
     return Undefined();
 }
+*/
 
 extern "C" void Initialize(v8::Handle<v8::Value> target)
 {
     HandleScope scope;
 
     target->Set(String::NewSymbol("remove"), FunctionTemplate::New(Remove)->GetFunction());
-    target->Set(String::NewSymbol("remove_sync"), FunctionTemplate::New(RemoveSync)->GetFunction());
+    //target->Set(String::NewSymbol("remove_sync"), FunctionTemplate::New(RemoveSync)->GetFunction());
 }
 
 NODE_MODULE(clang, Initialize)
