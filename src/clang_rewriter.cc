@@ -1,10 +1,8 @@
 //-------------------------------------------------------------------------
 // clang_rewriter.cc: Source-to-source transformation with Clang that uses
-// the code rewriting interface "Rewriter." Turns all references to the
-// user-provided list of functions to _function, allowing us to throw in our
-// own versions of those functions.
+// the code rewriting interface "Rewriter."
 //
-// NOTE: to compile in Clang 3.X, set the -DCLANG_3 flag.
+// NOTE: to compile in Clang 2.X, set the -DCLANG_2 flag.
 //
 // Author: Nate Hardison (nate@cs.harvard.edu)
 // 
@@ -14,6 +12,8 @@
 // Also got significant help from the Clang tutorials at:
 // https://github.com/loarabia/Clang-tutorial/wiki/TutorialOrig
 //--------------------------------------------------------------------------
+#include "clang_rewriter.h"
+
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
@@ -53,7 +53,6 @@ public:
                            std::set<std::string> &functions, SourceManager &sm)
         : rw_(rw), files_(files), functions_(functions), sm_(sm) {}
 
-// hack hack hack hack hack
 #ifdef CLANG_2
     virtual void
 #else

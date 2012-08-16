@@ -1,6 +1,7 @@
 // Node.js includes
 #include <node.h>
 #include <v8.h>
+#include <uv.h>
 
 // C++ includes
 #include <exception>
@@ -26,33 +27,32 @@ rewrite_request;
 
 static int EIO_Rewrite(eio_req* req)
 {
-    std::cerr << "Here we are!" << std::endl;
-
     // unpack our EIO request struct to get all of the info we need
     rewrite_request* rewrite_req = static_cast<rewrite_request*>(req->data);
 
-    //try
+    // TODO: actually handle these errors
+    try
         rewrite(rewrite_req->filename, rewrite_req->functions);
-    //catch (const char* err)
-        //rewrite_req->error = strdup(err);
+    catch (...)
+        rewrite_req->error = "here's an error for ya!";
 
     return 0;
 }
 
-int EIO_AfterRewrite(eio_req* req)
+static int EIO_AfterRewrite(eio_req* req)
 {
     HandleScope scope;
 
     rewrite_request* rewrite_req = static_cast<rewrite_request*>(req->data);
 
+    // TODO: this causes warnings, but uv_unref wants a handle that we don't have
     ev_unref(EV_DEFAULT_UC);
 
-    // TODO: figure out if this is appropriate for the callback
     Handle<Value> argv[1];
     if (!rewrite_req->error.empty())
-        argv[0] = String::New(rewrite_req->error.c_str());
+        argv[0] = Exception::Error(String::New(rewrite_req->error.c_str()));
     else
-        argv[0] = Undefined();
+        argv[0] = Null();
 
     TryCatch try_catch;
 
@@ -61,21 +61,19 @@ int EIO_AfterRewrite(eio_req* req)
     if (try_catch.HasCaught())
         FatalException(try_catch);
 
-    // clean up
     rewrite_req->callback.Dispose();
     delete rewrite_req;
 
     return 0;
 }
 
-Handle<Value> Remove(const Arguments& args)
+static Handle<Value> Remove(const Arguments& args)
 {
     HandleScope scope;
 
-    // error checking! It sucks to to it this way...
     if (args.Length() < 3)
     {
-        return ThrowException(Exception::Error(
+        return ThrowException(Exception::SyntaxError(
                     String::New("Usage: remove(filename, function[s], callback)")));
     }
 
@@ -104,8 +102,6 @@ Handle<Value> Remove(const Arguments& args)
     String::Utf8Value filename(args[0]);
     rewrite_req->filename = std::string(*filename);
 
-    std::cerr << "Filename: " << rewrite_req->filename << std::endl;
-
     // pull out the function arg(s) and put them in the EIO request's vector
     if (args[1]->IsString())
     {
@@ -119,7 +115,6 @@ Handle<Value> Remove(const Arguments& args)
         {
             String::Utf8Value function(functions->Get(i)->ToString());
             rewrite_req->functions.insert(std::string(*function));
-            std::cout << "Function: " << *function << std::endl;
         }
     }
 
@@ -131,6 +126,7 @@ Handle<Value> Remove(const Arguments& args)
     eio_custom(EIO_Rewrite, EIO_PRI_MAX, EIO_AfterRewrite, rewrite_req);
 
     // retain a reference to this event thread so Node doesn't exit
+    // TODO: this causes warnings, but uv_ref wants a uv handle, which we don't have
     ev_ref(EV_DEFAULT_UC);
 
     return Undefined();
