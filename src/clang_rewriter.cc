@@ -99,8 +99,12 @@ private:
     SourceManager &sm_;
 };
 
-void rewrite(std::string filename, std::set<std::string> &functions)
+void rewrite(const char* filename, const char* function)
 {
+    // Build up a set of functions
+    std::set<std::string> functions;
+    functions.insert(function);
+
     // need to remember which files get rewritten
     std::set<FileID> files;
 

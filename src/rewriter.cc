@@ -24,18 +24,17 @@ typedef struct
 }
 rewrite_request;
 
-int EIO_Rewrite(eio_req* req)
+static int EIO_Rewrite(eio_req* req)
 {
-    HandleScope scope;
+    std::cerr << "Here we are!" << std::endl;
 
     // unpack our EIO request struct to get all of the info we need
-    rewrite_request* rewrite_req = (rewrite_request*)req->data;
+    rewrite_request* rewrite_req = static_cast<rewrite_request*>(req->data);
 
-    std::cout << "Here we are!" << std::endl;
-    try
+    //try
         rewrite(rewrite_req->filename, rewrite_req->function);
-    catch (const char* err)
-        rewrite_req->error = strdup(err);
+    //catch (const char* err)
+        //rewrite_req->error = strdup(err);
 
     return 0;
 }
@@ -44,14 +43,14 @@ int EIO_AfterRewrite(eio_req* req)
 {
     HandleScope scope;
 
-    rewrite_request* rewrite_req = (rewrite_request*)req->data;
+    rewrite_request* rewrite_req = static_cast<rewrite_request*>(req->data);
 
     ev_unref(EV_DEFAULT_UC);
 
     // TODO: figure out if this is appropriate for the callback
-    Local<Value> argv[1];
+    Handle<Value> argv[1];
     if (rewrite_req->error)
-        argv[0] = ErrorException(rewrite_req->error);
+        argv[0] = String::New(rewrite_req->error);
     else
         argv[0] = Undefined();
 
@@ -116,7 +115,7 @@ Handle<Value> Remove(const Arguments& args)
     if (args[1]->IsString())
     {
         String::Utf8Value function(args[1]);
-        rewrite_req->functions = strdup(*function);
+        rewrite_req->function = strdup(*function);
     }
     /*else
     {
@@ -137,10 +136,10 @@ Handle<Value> Remove(const Arguments& args)
     rewrite_req->error = NULL;
 
     // set up the EIO calls
-    eio_custom(EIO_Rewrite, EIO_PRI_DEFAULT, EIO_AfterRewrite, rewrite_req);
+    eio_custom(EIO_Rewrite, EIO_PRI_MAX, EIO_AfterRewrite, rewrite_req);
 
     // retain a reference to this event thread so Node doesn't exit
-    uv_ref(EV_DEFAULT_UC);
+    ev_ref(EV_DEFAULT_UC);
 
     return Undefined();
 }
