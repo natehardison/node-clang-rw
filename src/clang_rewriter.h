@@ -4,6 +4,6 @@
 #include <string>
 #include <set>
 
-void rewrite(const char* filename, const char* function);
+void rewrite(std::string filename, std::set<std::string> functions);
 
 #endif /* CLANG_REWRITER_H */

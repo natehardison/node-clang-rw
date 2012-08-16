@@ -17,9 +17,9 @@ using namespace v8;
 // EIO request struct to be passed to EIO functions (for async purposes)
 typedef struct
 {
-    char* filename;
-    char* function;
-    char* error;
+    std::string filename;
+    std::set<std::string> functions;
+    std::string error;
     Persistent<Function> callback;
 }
 rewrite_request;
@@ -32,7 +32,7 @@ static int EIO_Rewrite(eio_req* req)
     rewrite_request* rewrite_req = static_cast<rewrite_request*>(req->data);
 
     //try
-        rewrite(rewrite_req->filename, rewrite_req->function);
+        rewrite(rewrite_req->filename, rewrite_req->functions);
     //catch (const char* err)
         //rewrite_req->error = strdup(err);
 
@@ -49,8 +49,8 @@ int EIO_AfterRewrite(eio_req* req)
 
     // TODO: figure out if this is appropriate for the callback
     Handle<Value> argv[1];
-    if (rewrite_req->error)
-        argv[0] = String::New(rewrite_req->error);
+    if (!rewrite_req->error.empty())
+        argv[0] = String::New(rewrite_req->error.c_str());
     else
         argv[0] = Undefined();
 
@@ -62,13 +62,8 @@ int EIO_AfterRewrite(eio_req* req)
         FatalException(try_catch);
 
     // clean up
-    free(rewrite_req->filename);
-    free(rewrite_req->function);
     rewrite_req->callback.Dispose();
-    if (rewrite_req->error)
-        free(rewrite_req->error);
-
-    free(rewrite_req);
+    delete rewrite_req;
 
     return 0;
 }
@@ -103,11 +98,11 @@ Handle<Value> Remove(const Arguments& args)
     }
 
     // build up our EIO request to be passed to our async EIO_ functions
-    rewrite_request* rewrite_req = (rewrite_request*)malloc(sizeof(rewrite_request));
+    rewrite_request* rewrite_req = new rewrite_request();
 
     // pull out the filename arg and put a C++ string in our EIO request 
     String::Utf8Value filename(args[0]);
-    rewrite_req->filename = strdup(*filename);
+    rewrite_req->filename = std::string(*filename);
 
     std::cerr << "Filename: " << rewrite_req->filename << std::endl;
 
@@ -115,9 +110,9 @@ Handle<Value> Remove(const Arguments& args)
     if (args[1]->IsString())
     {
         String::Utf8Value function(args[1]);
-        rewrite_req->function = strdup(*function);
+        rewrite_req->functions.insert(std::string(*function));
     }
-    /*else
+    else
     {
         Local<Array> functions = Local<Array>::Cast(args[1]);
         for (unsigned int i = 0; i < functions->Length(); i++)
@@ -126,14 +121,11 @@ Handle<Value> Remove(const Arguments& args)
             rewrite_req->functions.insert(std::string(*function));
             std::cout << "Function: " << *function << std::endl;
         }
-    }*/
+    }
 
     // pull out the callback and store a persistent copy in the EIO request
     Local<Function> callback = Local<Function>::Cast(args[2]); 
     rewrite_req->callback = Persistent<Function>::New(callback);
-
-    // initialize our error string to NULL
-    rewrite_req->error = NULL;
 
     // set up the EIO calls
     eio_custom(EIO_Rewrite, EIO_PRI_MAX, EIO_AfterRewrite, rewrite_req);
