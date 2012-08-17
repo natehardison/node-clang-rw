@@ -10,14 +10,14 @@
         "code",
         "transformation",
         "C",
-        "C++",
+        "C++"
     ],
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": {
         "name": "Nate Hardison",
-        "email": "nate@cs.harvard.edu",
+        "email": "nate@cs.harvard.edu"
     },
     "repository": {
         "type": "git",
