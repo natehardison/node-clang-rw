@@ -14,16 +14,11 @@
 //--------------------------------------------------------------------------
 #include "clang-rw.h"
 
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <exception>
 #include <fstream>
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "clang/AST/ASTConsumer.h"
@@ -51,10 +46,10 @@ public:
                            std::set<std::string> &functions, SourceManager &sm)
         : rw_(rw), files_(files), functions_(functions), sm_(sm) {}
 
-#ifdef CLANG_2
-    virtual void
-#else
+#ifdef OSX 
     virtual bool
+#else
+    virtual void
 #endif
     HandleTopLevelDecl(DeclGroupRef dgr)
     {
@@ -84,7 +79,7 @@ public:
             }
         }
 // me loves the preprocessor
-#ifndef CLANG_2
+#ifdef OSX
         return true;
 #endif
     }
@@ -111,10 +106,10 @@ void rewrite(std::string filename, std::set<std::string> functions)
 
     // Initialize target info with the default triple for our platform.
     TargetOptions to;
-#ifdef CLANG_2
-    to.Triple = llvm::sys::getHostTriple();
-#else
+#ifdef OSX
     to.Triple = llvm::sys::getDefaultTargetTriple();
+#else
+    to.Triple = llvm::sys::getHostTriple();
 #endif
 
     TargetInfo *ti = TargetInfo::CreateTargetInfo(ci.getDiagnostics(), to);
@@ -134,6 +129,9 @@ void rewrite(std::string filename, std::set<std::string> functions)
 
     // Set the main file handled by the source manager to the input file.
     const FileEntry *fileIn = fm.getFile(filename);
+    if (fileIn == NULL)
+        throw std::invalid_argument("Invalid filename: " + filename);
+
     sm.createMainFileID(fileIn);
     ci.getDiagnosticClient().BeginSourceFile(ci.getLangOpts(),
                                              &ci.getPreprocessor());
@@ -163,9 +161,12 @@ void rewrite(std::string filename, std::set<std::string> functions)
         std::string filename = ploc.getFilename();
 
         // write out the results, using a suffix for now
-        std::ofstream file;
-        file.open((filename + ".renamed").c_str());
+        std::ofstream file((filename + ".rewritten").c_str(), std::ios::out);
+        if (!file.is_open())
+            throw std::runtime_error("Couldn't open file for rewriting.");
+
         file << std::string(rb->begin(), rb->end()) << "\n";
+
         file.close();
     }
 }
