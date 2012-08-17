@@ -29,6 +29,7 @@
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Basic/TargetOptions.h"
 #include "clang/Frontend/CompilerInstance.h"
+#include "clang/Frontend/HeaderSearchOptions.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Parse/ParseAST.h"
 #include "clang/Parse/Parser.h"
@@ -120,6 +121,11 @@ void rewrite(std::string filename, std::set<std::string> functions)
 
     ci.createSourceManager(fm);
     SourceManager &sm = ci.getSourceManager();
+   
+    // my attempt to get clang to find stdlib headers, but it fails
+    HeaderSearchOptions hso = ci.getHeaderSearchOpts();
+    hso.AddPath("/usr/include", frontend::System, false, false, true);
+    hso.AddPath("/usr/local/include", frontend::System, false, false, true);
 
     ci.createPreprocessor();
     ci.getPreprocessorOpts().UsePredefines = false;
