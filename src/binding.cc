@@ -1,16 +1,13 @@
 // Node.js includes
 #include <node.h>
 #include <v8.h>
-#include <uv.h>
 
 // C++ includes
-#include <exception>
-#include <iostream>
 #include <set>
 #include <string>
 
 // Local includes
-#include "clang_rewriter.h"
+#include "clang-rw.h"
 
 using namespace node;
 using namespace v8;
