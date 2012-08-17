@@ -8,51 +8,48 @@
                 "./src/clang-rw.cc"
             ],
 
-            # Throw in all of llvm-config's #defines
-            # TODO: make this work with <!(llvm-config --cppflags)>
-            "defines": [
-                "NDEBUG",
-                "_GNU_SOURCE",
-                "__STDC_CONSTANT_MACROS",
-                "__STDC_FORMAT_MACROS",
-                "__STDC_LIMIT_MACROS"
-            ],
-
-            # Throw in all of llvm-config's CXX flags 
-            # TODO: make this work with <!(llvm-config --cxxflags)>
-            "cflags": [
-
-            ],
+            "cflags": [ "<!@(llvm-config --cxxflags)" ],
 
             # Enable C++ exceptions (node-gyp has them off by default)
-            "cflags!": [ "fno-exceptions" ],
-            "cflags_cc!": [ "fno-exceptions" ],
+            "cflags!": [ "-fno-exceptions" ],
+            "cflags_cc!": [ "-fno-exceptions" ],
 
             "link_settings": {
-                "libraries": [
-                    "-lclangAnalysis",
-                    "-lclangAST",
-                    "-lclangBasic",
+                "ldflags": [ "<!@(llvm-config --ldflags)" ],
+                "libraries": [ "<!@(llvm-config --libs cppbackend)" ],
+                "libraries+": [
                     "-lclangFrontend",
                     "-lclangDriver",
-                    "-lclangLex",
-                    "-lclangParse",
-                    "-lclangRewrite",
-                    "-lclangSema",
                     "-lclangSerialization",
-                    "-lLLVMMC",
-                    "-lLLVMSupport"
+                    "-lclangParse",
+                    "-lclangSema",
+                    "-lclangAnalysis",
+                    "-lclangRewrite",
+                    "-lclangAST",
+                    "-lclangLex",
+                    "-lclangBasic",
                 ]
             },
 
             "conditions": [
                 ["OS=='mac'", {
-                    "defines+": ["OSX"],
-                    "link_settings": {
-                        "libraries+": ["-lclangEdit"]
-                    },
-                    "xcode_settings": {"GCC_ENABLE_CPP_EXCEPTIONS": "YES"}
-                }],
+                    # gyp doesn't like llvm-config on my Mac...
+                    # must be my custom install...
+                    "defines": [
+                        "__STDC_CONSTANT_MACROS",
+                        "__STDC_FORMAT_MACROS",
+                        "__STDC_LIMIT_MACROS",
+                        "OSX"
+                    ],
+
+                    "cflags": [
+
+                    ],
+
+                    "link_settings": { "libraries+": [ "-lclangEdit" ] },
+
+                    "xcode_settings": { "GCC_ENABLE_CPP_EXCEPTIONS": "YES" }
+                }]
             ]
         }
     ]
