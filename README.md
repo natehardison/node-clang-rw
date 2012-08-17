@@ -4,6 +4,14 @@ This Node module allows you to do simple source code rewriting with Clang.
 
 More info is forthcoming!
 
+
+TODOs
+=====
+* On Fedora 17, the installed version of clang can find the standard libraries,
+  but the rewriter can't. This should be fixable by setting the
+  `HeaderSearchOptions`, but I can't seem to get it.
+
+
 Gotchas
 =======
 * On Fedora, clang++ 3.0 doesn't handle libstdc++ at all, so you have to
@@ -19,6 +27,7 @@ Gotchas
 * node doesn't like hyphens in module names in the `NODE\_MODULE` macro, so you
   just have to use the standard `extern "C" void init(...)` function.
   
+
 Dependencies
 ============
-sudo yum -y install clang clang-devel gcc-c++ llvm llvm-devel
+    sudo yum -y install clang clang-devel gcc-c++ llvm llvm-devel
