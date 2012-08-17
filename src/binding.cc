@@ -131,11 +131,10 @@ static Handle<Value> Remove(const Arguments& args)
     return Undefined();
 }
 
-void Initialize(Handle<Object> target)
+extern "C" void init(Handle<Object> target)
 {
     HandleScope scope;
 
     target->Set(String::NewSymbol("remove"), FunctionTemplate::New(Remove)->GetFunction());
 }
 
-NODE_MODULE(clang-rw, Initialize)
