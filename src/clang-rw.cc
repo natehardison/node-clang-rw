@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------
-// clang_rewriter.cc: Source-to-source transformation with Clang that uses
+// clang-rw.cc: Source-to-source transformation with Clang that uses
 // the code rewriting interface "Rewriter."
 //
 // NOTE: to compile in Clang 2.X, set the -DCLANG_2 flag.
@@ -12,7 +12,7 @@
 // Also got significant help from the Clang tutorials at:
 // https://github.com/loarabia/Clang-tutorial/wiki/TutorialOrig
 //--------------------------------------------------------------------------
-#include "clang_rewriter.h"
+#include "clang-rw.h"
 
 #include <errno.h>
 #include <string.h>
@@ -41,8 +41,6 @@
 #include "clang/Rewrite/Rewriters.h"
 
 #include "llvm/Support/Host.h"
-
-#include "clang_rewriter.h"
 
 using namespace clang;
 
