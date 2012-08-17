@@ -22,18 +22,21 @@ typedef struct
 }
 rewrite_request;
 
-static int EIO_Rewrite(eio_req* req)
+// Depending on your version of libeio, this might return an int instead
+static void EIO_Rewrite(eio_req* req)
 {
     // unpack our EIO request struct to get all of the info we need
     rewrite_request* rewrite_req = static_cast<rewrite_request*>(req->data);
 
     // TODO: actually handle these errors
     try
+    {
         rewrite(rewrite_req->filename, rewrite_req->functions);
-    catch (...)
-        rewrite_req->error = "here's an error for ya!";
-
-    return 0;
+    }
+    catch (std::exception &e)
+    {
+        rewrite_req->error = e.what();
+    }
 }
 
 static int EIO_AfterRewrite(eio_req* req)
