@@ -1,0 +1,27 @@
+{
+    "name": "clang-rw",
+    "version": "0.0.1",
+    "description": "Rewrites C/C++ source code",
+    "main": "./build/Release/clang-rw",
+    "keywords": [
+        "clang",
+        "rewrite",
+        "source",
+        "code",
+        "transformation",
+        "C",
+        "C++",
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": {
+        "name": "Nate Hardison",
+        "email": "nate@cs.harvard.edu",
+    },
+    "repository": {
+        "type": "git",
+        "url": "http://github.com/natehardison/node-clang-rw.git"
+    },
+    "license": "BSD"
+}
