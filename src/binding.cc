@@ -28,7 +28,6 @@ static void EIO_Rewrite(eio_req* req)
     // unpack our EIO request struct to get all of the info we need
     rewrite_request* rewrite_req = static_cast<rewrite_request*>(req->data);
 
-    // TODO: actually handle these errors
     try
     {
         rewrite(rewrite_req->filename, rewrite_req->functions);
@@ -139,4 +138,4 @@ void Initialize(Handle<Object> target)
     target->Set(String::NewSymbol("remove"), FunctionTemplate::New(Remove)->GetFunction());
 }
 
-NODE_MODULE(rewriter, Initialize)
+NODE_MODULE(clang-rw, Initialize)
